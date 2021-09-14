@@ -8,9 +8,9 @@ import { faHeart as outlineHeart } from '@fortawesome/free-regular-svg-icons'
 
 function App() {
   const [imageData, setImageData] = useState([]);
+  const [likedImagesList, setLikedImagesList] = useState([]);
 
-  const [like, setLike] = useState(false);
-
+  //fetching the data from NASA api and populating imageData state
   useEffect(() => {
     fetch('https://api.nasa.gov/planetary/apod?api_key=kJizNaBpK4kVUlb6fq7MqQuPNT4KR8G21rMp56r9&start_date=2018-01-05&end_date=2018-05-05')
         .then(response => response.json())
@@ -18,18 +18,39 @@ function App() {
         .catch(error => console.log(error));
   }, []);
 
+  //set likedImagesList state once when component mounts, then whenever storage is changed
+  useEffect(() => {
+      const checkData = () => {
+          const storedLikedImages = localStorage.getItem('spacestagram');
+          if(storedLikedImages) setLikedImagesList(JSON.parse(storedLikedImages));
+      };
+      checkData();
+
+      window.addEventListener('storage', checkData);
+
+      return () => {
+          window.removeEventListener("storage", checkData);
+      };
+  }, []);
+
+  //update the storage and likedImagesList state when a user likes/unlikes an image
   const handleLike = (date) => {
-      //setLike(!like);
-      let likedImages = localStorage.getItem('testing');
+      let likedImages = localStorage.getItem('spacestagram');
       if(likedImages === null) likedImages = [];
       if(likedImages.includes(date)) {
           likedImages = JSON.parse(likedImages);
           likedImages = likedImages.filter(value => value !== date);
       } else {
-          const parsedDate = JSON.parse(date);
-          likedImages = [...likedImages, parsedDate];
+          if(likedImages.length) likedImages = JSON.parse(likedImages);
+          likedImages = [...likedImages, date];
       }
-      localStorage.setItem('testing', JSON.stringify(likedImages));
+      setLikedImagesList(likedImages);
+      localStorage.setItem('spacestagram', JSON.stringify(likedImages));
+  };
+
+  //check if an image is liked
+  const isImageLiked = (date) => {
+    return likedImagesList?.includes(date);
   };
 
   const cards = () => {
@@ -47,7 +68,7 @@ function App() {
                                   <div className="cardTitle">{image.title}</div>
                                   <div className="cardText">{image.explanation}</div>
                                   <div className="tagsGroup">
-                                      {like ? (
+                                      {isImageLiked(image.date) ? (
                                           <div className="cardOutlineHeart" onClick={() => handleLike(image.date)}>
                                               <FontAwesomeIcon icon={solidHeart} size="lg" color="#FC636B" />
                                           </div>
